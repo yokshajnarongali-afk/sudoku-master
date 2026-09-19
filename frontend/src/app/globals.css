@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --bg-slate-800: #000000;
+    --bg-slate-700: #000000;
+    --bg-slate-600: #1a1a1a;
+    --text-slate-400: #ffffff;
+    --text-slate-500: #ffffff;
+  }
+}
