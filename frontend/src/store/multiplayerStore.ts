@@ -210,29 +210,29 @@ export const useMultiplayerStore = create<MultiplayerState>()(
       },
 
       leaveRoom: () => {
-        const socket = getSocket();
-        socket.emit("room:leave");
+        try {
+          const socket = getSocket();
+          socket.emit("room:leave");
+        } catch {
+          // socket may not be initialized if user navigated back before connecting
+        }
         set({ currentRoom: null, gameState: null });
       },
 
       kickPlayer: (targetPlayerId) => {
-        const socket = getSocket();
-        socket.emit("room:kick", { targetPlayerId });
+        try { getSocket().emit("room:kick", { targetPlayerId }); } catch {}
       },
 
       transferHost: (targetPlayerId) => {
-        const socket = getSocket();
-        socket.emit("room:transfer_host", { targetPlayerId });
+        try { getSocket().emit("room:transfer_host", { targetPlayerId }); } catch {}
       },
 
       toggleReady: (isReady: boolean) => {
-        const socket = getSocket();
-        socket.emit("room:ready", isReady);
+        try { getSocket().emit("room:ready", isReady); } catch {}
       },
 
       updateConfig: (payload: UpdateRoomConfigPayload) => {
-        const socket = getSocket();
-        socket.emit("room:update_config", payload);
+        try { getSocket().emit("room:update_config", payload); } catch {}
       },
 
       startGame: async (payload) => {
