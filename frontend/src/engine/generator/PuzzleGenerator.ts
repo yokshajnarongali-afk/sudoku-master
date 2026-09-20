@@ -9,7 +9,6 @@
  *   const puzzle = generatePuzzle('medium', 42);  // reproducible from seed
  */
 
-import { randomUUID } from "crypto";
 import { SEED_GRID } from "./SeedGrid";
 import { randomize } from "./PermutationEngine";
 import { maskToDifficulty, maskGrid, countClues, DIFFICULTY_CLUE_RANGES } from "./MaskEngine";
@@ -87,7 +86,7 @@ export function generatePuzzle(difficulty: Difficulty, seed?: number): SudokuPuz
   const puzzle = clues ?? solved;
 
   return {
-    id: randomUUID(),
+    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
     difficulty,
     clues: toGrid(puzzle),
     solution: toGrid(solved),
@@ -118,7 +117,7 @@ export function generatePuzzleFromSolved(
   const puzzle = maskGrid(solved, { targetClues }, rng) ?? solved;
 
   return {
-    id: randomUUID(),
+    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
     difficulty,
     clues: toGrid(puzzle),
     solution: toGrid(solved),
