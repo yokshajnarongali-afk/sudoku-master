@@ -113,33 +113,51 @@ export const LobbyScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       <div className="flex flex-col gap-3 p-5 bg-slate-800/50 rounded-xl border border-slate-700/50">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Game Settings</h3>
         
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-300">Game Mode</span>
-          <select 
-            disabled={!isHost}
-            value={currentRoom.config.gameMode}
-            onChange={(e) => updateConfig({ config: { gameMode: e.target.value as GameMode } })}
-            className="bg-slate-900 border border-slate-700 text-sm text-white rounded-md px-3 py-1.5 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
-          >
-            <option value="cooperative">Cooperative</option>
-            <option value="competitive">Competitive</option>
-            <option value="chaos">Chaos Mode</option>
-          </select>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-300">Game Mode</span>
+            <select 
+              disabled={!isHost}
+              value={currentRoom.config.gameMode}
+              onChange={(e) => {
+                const mode = e.target.value as GameMode;
+                updateConfig({ 
+                  config: { 
+                    gameMode: mode,
+                    actionCardsEnabled: mode === "chaos",
+                    chaosEnabled: mode === "chaos"
+                  } 
+                });
+              }}
+              className="bg-slate-900 border border-slate-700 text-sm text-white rounded-md px-3 py-1.5 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+            >
+              <option value="cooperative">Cooperative</option>
+              <option value="competitive">Competitive</option>
+              <option value="chaos">Chaos Mode</option>
+            </select>
+          </div>
+          <span className="text-xs text-slate-400 italic">
+            {currentRoom.config.gameMode === "cooperative" && "Work together on a single board to solve the puzzle."}
+            {currentRoom.config.gameMode === "competitive" && "Race against others on your own board. First to finish wins!"}
+            {currentRoom.config.gameMode === "chaos" && "Competitive mode with Mario-Kart style action cards to attack or defend."}
+          </span>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-300">Difficulty</span>
-          <select 
-            disabled={!isHost}
-            value={currentRoom.config.difficulty}
-            onChange={(e) => updateConfig({ config: { difficulty: e.target.value as Difficulty } })}
-            className="bg-slate-900 border border-slate-700 text-sm text-white rounded-md px-3 py-1.5 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
-          >
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-            <option value="expert">Expert</option>
-          </select>
+        <div className="flex flex-col gap-1 mt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-300">Difficulty</span>
+            <select 
+              disabled={!isHost}
+              value={currentRoom.config.difficulty}
+              onChange={(e) => updateConfig({ config: { difficulty: e.target.value as Difficulty } })}
+              className="bg-slate-900 border border-slate-700 text-sm text-white rounded-md px-3 py-1.5 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+            >
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+              <option value="expert">Expert</option>
+            </select>
+          </div>
         </div>
       </div>
 

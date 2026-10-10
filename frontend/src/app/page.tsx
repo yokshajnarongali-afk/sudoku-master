@@ -13,6 +13,7 @@ import { useMultiplayerStore } from "@/store/multiplayerStore";
 
 import { MultiplayerHUD } from "@/components/multiplayer/MultiplayerHUD";
 import { ActionCardHand } from "@/components/multiplayer/ActionCardHand";
+import { ReplayViewer } from "@/components/ReplayViewer";
 
 // App internal navigation state
 export default function HomePage() {
@@ -22,6 +23,8 @@ export default function HomePage() {
   
   const mpRoom = useMultiplayerStore(state => state.currentRoom);
   const mpIdentity = useMultiplayerStore(state => state.identity);
+  const mpMoves = useMultiplayerStore(state => state.moves);
+  const [showReplay, setShowReplay] = useState(false);
 
   // App internal navigation state
   const [view, setView] = useState<"home" | "solo" | "mp-lobby" | "mp-game">("home");
@@ -50,10 +53,12 @@ export default function HomePage() {
     }
   }, [mpGameState, mpRoom]);
 
-  // Update view based on solo game phase (e.g. if player abandons game)
+  // Update view based on solo game phase (e.g. if player abandons game, or starts a new game)
   useEffect(() => {
     if (view === "solo" && phase === "idle") {
       setView("home");
+    } else if (view === "home" && phase !== "idle") {
+      setView("solo");
     }
   }, [phase, view]);
 
@@ -146,18 +151,28 @@ export default function HomePage() {
               <span className="text-3xl font-extrabold text-green-400 mb-2">
                 {isMultiplayer ? "Game Over!" : "Solved!"}
               </span>
-              <button 
-                onClick={() => {
-                  if (isMultiplayer) {
-                    useMultiplayerStore.getState().leaveRoom();
-                  } else {
-                    useGameStore.getState().abandonGame();
-                  }
-                }}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-semibold transition-colors mt-4 shadow-lg"
-              >
-                {isMultiplayer ? "Leave Room" : "Main Menu"}
-              </button>
+              <div className="flex gap-3 mt-4">
+                {isMultiplayer && mpMoves && mpMoves.length > 0 && (
+                  <button 
+                    onClick={() => setShowReplay(true)}
+                    className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white font-semibold transition-colors shadow-lg"
+                  >
+                    Watch Replay
+                  </button>
+                )}
+                <button 
+                  onClick={() => {
+                    if (isMultiplayer) {
+                      useMultiplayerStore.getState().leaveRoom();
+                    } else {
+                      useGameStore.getState().abandonGame();
+                    }
+                  }}
+                  className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-semibold transition-colors shadow-lg"
+                >
+                  {isMultiplayer ? "Leave Room" : "Main Menu"}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -171,6 +186,14 @@ export default function HomePage() {
           pencilMode={pencilMode}
         />
       </div>
+
+      {showReplay && mpRoom && mpMoves && mpGameState && (
+        <ReplayViewer 
+          initialBoard={mpRoom.config.gameMode === "cooperative" ? mpGameState.board : mpGameState.playerBoards[mpIdentity!.id]!}
+          moves={mpMoves}
+          onClose={() => setShowReplay(false)}
+        />
+      )}
     </div>
   );
 }

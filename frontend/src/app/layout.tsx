@@ -24,6 +24,7 @@ export const viewport: Viewport = {
 };
 
 import { AudioInitializer } from "@/components/AudioInitializer";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function RootLayout({
   children,
@@ -33,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <ThemeToggle />
         <AudioInitializer />
         {children}
       </body>

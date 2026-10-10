@@ -95,6 +95,7 @@ export const HomeMenu: React.FC<{ onMultiplayerStart: () => void }> = ({ onMulti
               key={diff}
               onClick={() => handleNewSolo(diff)}
               disabled={loadingDiff !== null}
+              title={`Start a new ${diff} solo game`}
               className={`
                 py-3 rounded-lg font-semibold uppercase tracking-wider text-xs transition-all border shadow-sm
                 ${loadingDiff === diff 

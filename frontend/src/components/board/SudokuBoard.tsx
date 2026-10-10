@@ -1,6 +1,7 @@
 import React from "react";
 import type { CellState, RowIndex, ColIndex, SudokuGrid } from "@sudoku/shared";
 import { SudokuCell } from "./SudokuCell";
+import { useMultiplayerStore } from "../../store/multiplayerStore";
 
 interface SudokuBoardProps {
   grid: SudokuGrid<CellState>;
@@ -22,6 +23,9 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   selectedCells,
   onCellClick
 }) => {
+  const cellLocks = useMultiplayerStore(state => state.cellLocks);
+  const myId = useMultiplayerStore(state => state.identity?.id);
+
   // If exactly one cell is selected, we highlight its peers
   const singleSelection = selectedCells.size === 1 ? Array.from(selectedCells)[0] : null;
   const [selR, selC] = singleSelection 
@@ -32,11 +36,6 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
     <div 
       className="bg-slate-800 p-3 sm:p-5 md:p-6 rounded-[12px] shadow-2xl flex flex-col items-center select-none touch-none"
     >
-      {/* 
-        The board surface uses gaps to create the grid lines.
-        bg-slate-500 creates the 2px box borders.
-        bg-slate-600 inside the boxes creates the 1px cell borders.
-      */}
       <div 
         role="grid"
         aria-label="Sudoku Board"
@@ -55,6 +54,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                 const cell = grid[r][c];
                 const cellId = `${r}-${c}`;
                 const isSelected = selectedCells.has(cellId);
+                const focusLockedBy = cellLocks[cellId] && cellLocks[cellId] !== myId ? cellLocks[cellId] : null;
                 
                 const isPeerSelected = selR !== null && selC !== null 
                   ? isPeer(r, c, selR, selC) 
@@ -68,6 +68,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                     col={c}
                     isSelected={isSelected}
                     isPeerSelected={isPeerSelected}
+                    focusLockedBy={focusLockedBy}
                     onClick={onCellClick}
                   />
                 );

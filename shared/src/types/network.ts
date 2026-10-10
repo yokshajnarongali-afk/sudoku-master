@@ -156,6 +156,9 @@ export interface ClientToServerEvents {
   /** Host resumes a paused game. */
   "game:resume": () => void;
 
+  /** Focus a cell (ephemeral lock). */
+  "game:focus": (payload: { row: number | null, col: number | null }) => void;
+
   /** Request the current full game state (e.g. on reconnect). */
   "game:sync": (callback: (result: AckResult<GameState>) => void) => void;
 }
@@ -172,6 +175,9 @@ export interface ServerToClientEvents {
 
   /** Authoritative result of a single move (sent to all players in room). */
   "game:move_result": (result: MoveResult) => void;
+
+  /** Another player focused a cell (ephemeral lock). */
+  "game:cell_locked": (payload: { row: number | null, col: number | null, playerId: string }) => void;
 
   /** Periodic timer sync to keep clients in sync. */
   "game:timer": (packet: TimerSyncPacket) => void;

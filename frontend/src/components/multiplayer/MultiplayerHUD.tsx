@@ -1,12 +1,27 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useMultiplayerStore } from "@/store/multiplayerStore";
-
 import { AudioToggle } from "../AudioToggle";
 
 export const MultiplayerHUD: React.FC = () => {
   const room = useMultiplayerStore(state => state.currentRoom);
   const gameState = useMultiplayerStore(state => state.gameState);
   const identity = useMultiplayerStore(state => state.identity);
+
+  const [localTime, setLocalTime] = useState(gameState?.timeElapsed || 0);
+
+  useEffect(() => {
+    setLocalTime(gameState?.timeElapsed || 0);
+  }, [gameState?.timeElapsed]);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (gameState?.phase === "playing") {
+      interval = setInterval(() => {
+        setLocalTime(t => t + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [gameState?.phase]);
 
   if (!room || !gameState || !identity) return null;
 
@@ -41,8 +56,19 @@ export const MultiplayerHUD: React.FC = () => {
 
         <div className="flex items-center gap-4">
           <AudioToggle />
+          <button 
+            onClick={() => useMultiplayerStore.getState().leaveRoom()}
+            className="p-2 bg-slate-800 hover:bg-red-900/50 rounded-md text-slate-300 transition-colors"
+            title="Leave Room"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
           <div className="text-2xl font-mono text-slate-300 font-bold">
-            {formatTime(gameState.timeElapsed)}
+            {formatTime(localTime)}
           </div>
         </div>
       </div>

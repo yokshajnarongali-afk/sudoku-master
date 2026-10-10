@@ -146,6 +146,12 @@ export function setupSocketHandlers(
       }
     });
 
+    socket.on("game:focus", (payload: { row: number | null, col: number | null }) => {
+      const room = roomManager.getRoomForPlayer(identity.id);
+      if (!room || room.status !== "playing") return;
+      socket.to(room.id).emit("game:cell_locked", { ...payload, playerId: identity.id });
+    });
+
     socket.on("game:move", (draft: import("@sudoku/shared").MoveDraft, callback: (res: any) => void) => {
       const room = roomManager.getRoomForPlayer(identity.id);
       if (!room || room.status !== "playing") {

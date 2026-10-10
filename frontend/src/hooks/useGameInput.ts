@@ -57,6 +57,11 @@ export function useGameInput(): UseGameInputReturn {
       }
       return next;
     });
+    
+    // Broadcast focus for cell locking
+    if (!shiftKey) {
+      mpState.focusCell(r, c);
+    }
   }, []);
 
   const handleDigit = useCallback((d: CellDigit) => {
@@ -75,7 +80,8 @@ export function useGameInput(): UseGameInputReturn {
         if (!board) return;
         
         const cell = board[r][c];
-        if (cell.given || (!isPersonalBoard && cell.lockedBy && cell.lockedBy !== myId)) return;
+        const focusLockedBy = mpState.cellLocks[`${r}-${c}`];
+        if (cell.given || (!isPersonalBoard && cell.lockedBy && cell.lockedBy !== myId) || (!isPersonalBoard && focusLockedBy && focusLockedBy !== myId)) return;
 
         if (pencilMode) {
           const type = cell.pencilMarks.includes(d) ? "pencil_remove" : "pencil_add";
@@ -168,6 +174,7 @@ export function useGameInput(): UseGameInputReturn {
         handleCellClick(r as RowIndex, c as ColIndex, e.shiftKey);
       } else if (e.key === "Escape") {
         setSelectedCells(new Set());
+        useMultiplayerStore.getState().focusCell(null, null);
       }
     };
 

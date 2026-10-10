@@ -1,5 +1,7 @@
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { createClient } from "redis";
 import { createApp } from "./app";
 import { setupSocketHandlers } from "./socket";
 import type { 
@@ -26,13 +28,35 @@ const httpServer = http.createServer(app);
 
 const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer, {
   cors: {
-    origin: FRONTEND_URL ?? "http://localhost:3000",
+    origin: FRONTEND_URL ?? "*", // Relaxed to allow local testing easily
     methods: ["GET", "POST"],
   },
 });
 
-setupSocketHandlers(io);
+async function startServer() {
+  if (process.env["REDIS_URL"]) {
+    try {
+      const pubClient = createClient({ url: process.env["REDIS_URL"] });
+      const subClient = pubClient.duplicate();
 
-httpServer.listen(PORT, () => {
-  console.log(`[server] running on http://localhost:${PORT}`);
-});
+      pubClient.on('error', (err) => console.error('[Redis Pub] Error:', err));
+      subClient.on('error', (err) => console.error('[Redis Sub] Error:', err));
+
+      await Promise.all([pubClient.connect(), subClient.connect()]);
+      io.adapter(createAdapter(pubClient, subClient));
+      console.log(`[socket] Redis adapter successfully connected`);
+    } catch (error) {
+      console.error('[socket] Failed to connect Redis adapter. Falling back to in-memory.', error);
+    }
+  } else {
+    console.log('[socket] No REDIS_URL provided. Using in-memory adapter (not horizontally scalable).');
+  }
+
+  setupSocketHandlers(io);
+
+  httpServer.listen(PORT, () => {
+    console.log(`[server] running on http://localhost:${PORT}`);
+  });
+}
+
+startServer().catch(console.error);

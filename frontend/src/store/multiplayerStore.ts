@@ -14,6 +14,9 @@ interface MultiplayerState {
   // Room State
   currentRoom: Room | null;
   gameState: GameState | null;
+  moves: MoveResult[];
+
+  cellLocks: Record<string, string>;
 
   // Actions
   setIdentity: (displayName: string) => void;
@@ -28,6 +31,7 @@ interface MultiplayerState {
   startGame: (payload: StartGamePayload) => Promise<AckResult<GameState>>;
   emitMove: (draft: MoveDraft) => Promise<AckResult<MoveResult>>;
   useActionCard: (use: Omit<import("@sudoku/shared").ActionCardUse, "timestamp">) => Promise<AckResult<import("@sudoku/shared").ActionCardUse>>;
+  focusCell: (row: number | null, col: number | null) => void;
   
   activeTargetCardId: string | null;
   setActiveTargetCardId: (id: string | null) => void;
@@ -49,7 +53,16 @@ export const useMultiplayerStore = create<MultiplayerState>()(
       error: null,
       currentRoom: null,
       gameState: null,
+      moves: [],
       activeTargetCardId: null,
+      cellLocks: {},
+
+      focusCell: (row, col) => {
+        try {
+          const socket = getSocket();
+          socket.emit("game:focus", { row, col });
+        } catch {}
+      },
 
       setActiveTargetCardId: (id) => set({ activeTargetCardId: id }),
 
@@ -78,12 +91,32 @@ export const useMultiplayerStore = create<MultiplayerState>()(
         socket.off("game:state");
         socket.off("game:action_card_used");
         socket.off("game:move_result");
+        socket.off("game:cell_locked");
 
         socket.on("connect", () => set({ isConnected: true, error: null }));
         socket.on("disconnect", () => set({ isConnected: false }));
         
         socket.on("room:updated", (room) => {
           set({ currentRoom: room });
+        });
+
+        socket.on("game:cell_locked", (data: { row: number | null, col: number | null, playerId: string }) => {
+          const { cellLocks } = get();
+          const newLocks = { ...cellLocks };
+          
+          // Clear previous lock for this player
+          for (const key of Object.keys(newLocks)) {
+            if (newLocks[key] === data.playerId) {
+              delete newLocks[key];
+            }
+          }
+          
+          // Add new lock
+          if (data.row !== null && data.col !== null) {
+            newLocks[`${data.row}-${data.col}`] = data.playerId;
+          }
+          
+          set({ cellLocks: newLocks });
         });
 
         socket.on("game:state", (state) => {
@@ -97,6 +130,7 @@ export const useMultiplayerStore = create<MultiplayerState>()(
         });
 
         socket.on("game:move_result", (result) => {
+          set((state) => ({ moves: [...state.moves, result] }));
           // Mutate the local board state optimistically/authoritatively
           const { gameState, currentRoom } = get();
           if (!gameState || !currentRoom) return;
@@ -237,6 +271,7 @@ export const useMultiplayerStore = create<MultiplayerState>()(
 
       startGame: async (payload) => {
         const socket = getSocket();
+        set({ moves: [] });
         return new Promise((resolve) => {
           socket.emit("game:start", payload, (result) => {
             if (result.ok) set({ gameState: result.data, error: null });
@@ -248,6 +283,39 @@ export const useMultiplayerStore = create<MultiplayerState>()(
 
       emitMove: async (draft) => {
         const socket = getSocket();
+        
+        // --- OPTIMISTIC UI ---
+        const { gameState, currentRoom, identity } = get();
+        if (gameState && currentRoom && identity && draft.type === "digit") {
+            const isPersonalBoard = currentRoom.config.gameMode === "competitive" || currentRoom.config.gameMode === "chaos";
+            const targetBoardSource = isPersonalBoard ? gameState.playerBoards[identity.id] : gameState.board;
+            
+            if (targetBoardSource) {
+                const newBoard = [...targetBoardSource] as unknown as import("@sudoku/shared").CellState[][];
+                const newRow = [...newBoard[draft.row]!];
+                newRow[draft.col] = { 
+                    ...newRow[draft.col]!, 
+                    value: draft.value as import("@sudoku/shared").CellDigit, 
+                    isError: false,
+                    pencilMarks: []
+                };
+                newBoard[draft.row] = newRow;
+                
+                const typedNewBoard = newBoard as unknown as typeof gameState.board;
+                set({
+                    gameState: {
+                        ...gameState,
+                        board: isPersonalBoard ? gameState.board : typedNewBoard,
+                        playerBoards: isPersonalBoard ? {
+                            ...gameState.playerBoards,
+                            [identity.id]: typedNewBoard
+                        } : gameState.playerBoards
+                    }
+                });
+            }
+        }
+        // --- END OPTIMISTIC UI ---
+
         return new Promise((resolve) => {
           socket.emit("game:move", draft, (result) => {
             if (!result.ok) set({ error: result.error.message });

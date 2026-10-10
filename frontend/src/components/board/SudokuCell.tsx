@@ -7,6 +7,7 @@ interface SudokuCellProps {
   col: ColIndex;
   isSelected: boolean;
   isPeerSelected?: boolean;
+  focusLockedBy?: string | null;
   onClick: (r: RowIndex, c: ColIndex, shiftKey: boolean) => void;
 }
 
@@ -18,11 +19,12 @@ export const SudokuCell: React.FC<SudokuCellProps> = React.memo(({
   col,
   isSelected,
   isPeerSelected,
+  focusLockedBy,
   onClick
 }) => {
   const handleClick = (e: React.MouseEvent) => {
     // Only standard left click or shift+left click
-    if (e.button === 0) {
+    if (e.button === 0 && !focusLockedBy) {
       e.preventDefault();
       onClick(row, col, e.shiftKey);
     }
@@ -45,20 +47,25 @@ export const SudokuCell: React.FC<SudokuCellProps> = React.memo(({
   // Selection ring
   const ringClass = isSelected ? "ring-2 ring-inset ring-indigo-500 z-10" : "";
 
-  // Player Lock Ring
-  const getLockColorClass = (id: string) => {
+  // Player Lock Ring (permanent or ephemeral)
+  const getLockColorClass = (id: string, isEphemeral: boolean) => {
     // Deterministic ring color based on ID length/characters
     const colors = ["ring-rose-500", "ring-emerald-500", "ring-cyan-500", "ring-fuchsia-500", "ring-amber-500"];
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
       hash = id.charCodeAt(i) + ((hash << 5) - hash);
     }
-    return colors[Math.abs(hash) % colors.length];
+    const color = colors[Math.abs(hash) % colors.length];
+    return isEphemeral ? `${color} ring-opacity-50 border-dashed` : `${color} shadow-[0_0_8px_rgba(0,0,0,0.5)]`;
   };
 
-  const lockRingClass = cell.lockedBy ? `ring-2 ring-inset ${getLockColorClass(cell.lockedBy)} z-10 shadow-[0_0_8px_rgba(0,0,0,0.5)]` : "";
+  const lockRingClass = cell.lockedBy 
+    ? `ring-2 ring-inset ${getLockColorClass(cell.lockedBy, false)} z-10` 
+    : focusLockedBy 
+      ? `ring-2 ring-inset ${getLockColorClass(focusLockedBy, true)} z-10 animate-pulse`
+      : "";
 
-  // Combine rings (selection takes precedence visually if both exist, though locked cells can't be modified)
+  // Combine rings (selection takes precedence visually if both exist)
   const combinedRings = isSelected ? ringClass : lockRingClass;
 
   const finalTextColor = cell.given 

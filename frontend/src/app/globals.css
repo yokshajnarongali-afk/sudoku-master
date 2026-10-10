@@ -20,3 +20,9 @@
     --text-slate-500: #ffffff;
   }
 }
+
+:root[data-theme="light"] {
+  filter: invert(1) hue-rotate(180deg);
+  background-color: #0f172a; /* Because the filter inverts this, we set it to the original dark bg so it becomes light */
+}
+
